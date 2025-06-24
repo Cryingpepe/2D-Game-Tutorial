@@ -5,18 +5,31 @@ public class PlayerMove : MonoBehaviour
     Rigidbody2D rb;
     SpriteRenderer spriteRenderer;
     Animator animator;
+    bool isJumping;
+    public float jumpForce; // Force applied when jumping
     public float maxSpeed;
     private Vector2 moveInputVector;
+
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+        isJumping = false;
     }
     public void OnMove(InputValue value)
     {
-        moveInputVector = value.Get<Vector2>(); 
+        moveInputVector = value.Get<Vector2>();
+    }
+    public void OnJump()
+    {
+        if (!isJumping)
+        {
+            isJumping = true; // Set jumping state to true
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse); // Add upward force for jump
+            animator.SetBool("isJumping", true); // Trigger jump animation
+        }
     }
     private void OnMoveCanceled(InputAction.CallbackContext context)
     {
@@ -50,6 +63,15 @@ public class PlayerMove : MonoBehaviour
         else if (rb.linearVelocity.x < -maxSpeed) // speed to left side
         {
             rb.linearVelocity = new Vector2(-maxSpeed, rb.linearVelocity.y);
+        }
+    }
+    
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Floor"))
+        {
+            isJumping = false; // Reset jumping state when colliding with the floor
+            animator.SetBool("isJumping", false); // Stop jump animation
         }
     }
 }
