@@ -65,7 +65,7 @@ public class PlayerMove : MonoBehaviour
             rb.linearVelocity = new Vector2(-maxSpeed, rb.linearVelocity.y);
         }
     }
-    
+
     void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Floor"))
@@ -73,5 +73,47 @@ public class PlayerMove : MonoBehaviour
             isJumping = false; // Reset jumping state when colliding with the floor
             animator.SetBool("isJumping", false); // Stop jump animation
         }
+
+        if (collision.gameObject.CompareTag("enemy"))
+        {
+            if (rb.linearVelocity.y < 0 && transform.position.y > collision.contacts[0].point.y) // Check if player is falling
+            {
+                OnAttack(collision.transform);
+            }
+            else
+            {
+                OnDamaged(collision.contacts[0].point); // Call method to handle player damage
+            }
+        }
     }
+
+    void OnDamaged(Vector2 damageSourcePosition)
+    {
+        gameObject.layer = 8; // Change player layer to "PlayerDamaged"
+
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f); // Change player color to red to indicate damage
+
+        int direction = transform.position.x - damageSourcePosition.x > 0 ? 1 : -1; // Determine direction based on damage source position
+        rb.AddForce(new Vector2(direction, 1) * 7, ForceMode2D.Impulse); // Apply force to the player when damaged
+
+        animator.SetTrigger("Damaged"); // Trigger damage animation
+
+        Invoke("OffDamaged", 2); // Call OffDamaged method after 2 seconds to reset player state
+    }
+
+    void OffDamaged()
+    {
+        gameObject.layer = 7; // Change player layer back to "Player"
+        spriteRenderer.color = new Color(1, 1, 1, 1); // Reset player color to normal
+    }
+
+    void OnAttack(Transform enemy)
+    {
+        EnemyMove enemyMove = enemy.GetComponent<EnemyMove>();
+
+        rb.AddForce(Vector2.up * 10, ForceMode2D.Impulse); // Apply upward force to the player when attacking an enemy
+
+        enemyMove.OnDamaged(); // Call OnDamaged method on the enemy to handle enemy damage
+    }
+
 }
