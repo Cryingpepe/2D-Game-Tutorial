@@ -60,6 +60,7 @@ public class EnemyMove : MonoBehaviour
     {
         spriteRenderer.color = new Color(1, 1, 1, 0.3f); // Change color to red when damaged
         spriteRenderer.flipY = true; // Flip sprite to indicate damage
+        nextMove = 0; // Stop movement
         capsuleCollider.enabled = false; // Disable collider to prevent further interactions
         rb.AddForce(new Vector2(0, 5), ForceMode2D.Impulse); // Apply upward force when damaged
         Invoke("Deactive", 4); // Deactivate enemy after 1 second

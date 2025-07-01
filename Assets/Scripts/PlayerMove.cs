@@ -1,11 +1,15 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+
 public class PlayerMove : MonoBehaviour
 {
     Rigidbody2D rb;
     SpriteRenderer spriteRenderer;
     Animator animator;
+    CapsuleCollider2D capsuleCollider;
+
     bool isJumping;
+    public GameManager gameManager; // Reference to the GameManager script
     public float jumpForce; // Force applied when jumping
     public float maxSpeed;
     private Vector2 moveInputVector;
@@ -16,6 +20,8 @@ public class PlayerMove : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+        capsuleCollider = GetComponent<CapsuleCollider2D>();
+
         isJumping = false;
     }
     public void OnMove(InputValue value)
@@ -76,7 +82,7 @@ public class PlayerMove : MonoBehaviour
 
         if (collision.gameObject.CompareTag("enemy"))
         {
-            if (rb.linearVelocity.y < 0 && transform.position.y > collision.contacts[0].point.y) // Check if player is falling
+            if (rb.linearVelocity.y < 0 && transform.position.y > collision.contacts[0].point.y && collision.gameObject.name != "spike") // Check if player is falling
             {
                 OnAttack(collision.transform);
             }
@@ -89,6 +95,8 @@ public class PlayerMove : MonoBehaviour
 
     void OnDamaged(Vector2 damageSourcePosition)
     {
+        gameManager.HealthDown(); // Decrease player's health when damaged
+
         gameObject.layer = 8; // Change player layer to "PlayerDamaged"
 
         spriteRenderer.color = new Color(1, 1, 1, 0.4f); // Change player color to red to indicate damage
@@ -109,11 +117,56 @@ public class PlayerMove : MonoBehaviour
 
     void OnAttack(Transform enemy)
     {
+        gameManager.stagePoint += 100; // Increase total score by 100 when attacking an enemy
+
         EnemyMove enemyMove = enemy.GetComponent<EnemyMove>();
 
         rb.AddForce(Vector2.up * 10, ForceMode2D.Impulse); // Apply upward force to the player when attacking an enemy
 
         enemyMove.OnDamaged(); // Call OnDamaged method on the enemy to handle enemy damage
+    }
+
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Item"))
+        {
+            bool isBronze = collision.gameObject.name.Contains("bronze");
+            bool isSilver = collision.gameObject.name.Contains("silver");
+
+            if (isBronze)
+            {
+                gameManager.stagePoint += 50; // Add 50 points for bronze item
+            }
+            else if (isSilver)
+            {
+                gameManager.stagePoint += 100; // Add 100 points for silver item
+            }
+            else
+            {
+                gameManager.stagePoint += 300; // Add 300 points for other items
+            }
+
+            gameManager.stagePoint += 100;
+
+            collision.gameObject.SetActive(false); // Deactivate the item when player collides with it
+        }
+        else if (collision.gameObject.CompareTag("Finish"))
+        {
+            gameManager.NextStage(); // Call NextStage method in GameManager when player reaches the finish line
+        }
+    }
+
+    public void OnDie()
+    {
+        spriteRenderer.color = new Color(1, 1, 1, 0.3f); // Change color to red when damaged
+        spriteRenderer.flipY = true; // Flip sprite to indicate damage
+        capsuleCollider.enabled = false; // Disable collider to prevent further interactions
+        rb.AddForce(new Vector2(0, 5), ForceMode2D.Impulse); // Apply upward force when damaged
+    }
+
+    public void VelocityZero()
+    {
+        rb.linearVelocity = Vector2.zero; // Reset player velocity to zero
     }
 
 }
