@@ -7,6 +7,7 @@ public class PlayerMove : MonoBehaviour
     SpriteRenderer spriteRenderer;
     Animator animator;
     CapsuleCollider2D capsuleCollider;
+    AudioSource audioSource; // Audio source for playing sounds
 
     bool isJumping;
     public GameManager gameManager; // Reference to the GameManager script
@@ -14,6 +15,12 @@ public class PlayerMove : MonoBehaviour
     public float maxSpeed;
     private Vector2 moveInputVector;
 
+    public AudioClip audioJump; // Audio clip for jump sound
+    public AudioClip audioAttack; // Audio clip for attack sound
+    public AudioClip audioDamaged; // Audio clip for damage sound
+    public AudioClip audioItem; // Audio clip for item collection sound
+    public AudioClip audioDie; // Audio clip for death sound
+    public AudioClip audioStageClear; // Audio clip for stage clear sound
 
     void Awake()
     {
@@ -21,6 +28,7 @@ public class PlayerMove : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
         capsuleCollider = GetComponent<CapsuleCollider2D>();
+        audioSource = GetComponent<AudioSource>();
 
         isJumping = false;
     }
@@ -28,6 +36,33 @@ public class PlayerMove : MonoBehaviour
     {
         moveInputVector = value.Get<Vector2>();
     }
+
+    void PlaySound(string action)
+    { 
+        switch (action)
+        {
+            case "Jump":
+                audioSource.clip = audioJump; // Set jump sound
+                break;
+            case "Attack":
+                audioSource.clip = audioAttack; // Set attack sound
+                break;
+            case "Damaged":
+                audioSource.clip = audioDamaged; // Set damage sound
+                break;
+            case "Item":
+                audioSource.clip = audioItem; // Set item collection sound
+                break;
+            case "Die":
+                audioSource.clip = audioDie; // Set death sound
+                break;
+            case "StageClear":
+                audioSource.clip = audioStageClear; // Set stage clear sound
+                break;
+        }
+        audioSource.Play(); // Play the selected sound
+    }
+
     public void OnJump()
     {
         if (!isJumping)
@@ -35,6 +70,7 @@ public class PlayerMove : MonoBehaviour
             isJumping = true; // Set jumping state to true
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse); // Add upward force for jump
             animator.SetBool("isJumping", true); // Trigger jump animation
+            PlaySound("Jump"); // Play jump sound
         }
     }
     private void OnMoveCanceled(InputAction.CallbackContext context)
@@ -85,10 +121,12 @@ public class PlayerMove : MonoBehaviour
             if (rb.linearVelocity.y < 0 && transform.position.y > collision.contacts[0].point.y && collision.gameObject.name != "spike") // Check if player is falling
             {
                 OnAttack(collision.transform);
+                PlaySound("Attack"); // Play attack sound
             }
             else
             {
                 OnDamaged(collision.contacts[0].point); // Call method to handle player damage
+                PlaySound("Damaged"); // Play damage sound
             }
         }
     }
@@ -124,6 +162,7 @@ public class PlayerMove : MonoBehaviour
         rb.AddForce(Vector2.up * 10, ForceMode2D.Impulse); // Apply upward force to the player when attacking an enemy
 
         enemyMove.OnDamaged(); // Call OnDamaged method on the enemy to handle enemy damage
+        animator.SetTrigger("Attack"); // Trigger attack animation
     }
 
     void OnTriggerEnter2D(Collider2D collision)
@@ -148,11 +187,14 @@ public class PlayerMove : MonoBehaviour
 
             gameManager.stagePoint += 100;
 
+            PlaySound("Item"); // Play item collection sound
+
             collision.gameObject.SetActive(false); // Deactivate the item when player collides with it
         }
         else if (collision.gameObject.CompareTag("Finish"))
         {
             gameManager.NextStage(); // Call NextStage method in GameManager when player reaches the finish line
+            PlaySound("StageClear"); // Play stage clear sound
         }
     }
 
@@ -162,6 +204,7 @@ public class PlayerMove : MonoBehaviour
         spriteRenderer.flipY = true; // Flip sprite to indicate damage
         capsuleCollider.enabled = false; // Disable collider to prevent further interactions
         rb.AddForce(new Vector2(0, 5), ForceMode2D.Impulse); // Apply upward force when damaged
+        PlaySound("Die"); // Play death sound
     }
 
     public void VelocityZero()
